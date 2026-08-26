@@ -1,34 +1,28 @@
-const CACHE = "wipae-cache-v1";
-const ASSETS = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+const CACHE = "wipae-cache-v3";
+const ASSETS = ["./","./index.html","./manifest.webmanifest","./firebase-config.js","./icon-192.png","./icon-512.png"];
+self.addEventListener("install", function(e){
+  e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS);}).then(function(){return self.skipWaiting();}));
 });
-self.addEventListener("activate", (e) => {
+self.addEventListener("activate", function(e){
   e.waitUntil(
-    caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));})
+      .then(function(){return self.clients.claim();})
   );
 });
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  const isHTML = req.mode === "navigate" ||
-    (req.method === "GET" && (req.headers.get("accept") || "").includes("text/html"));
-  if (isHTML) {
-    // 항상 최신을 먼저 받아오고(온라인), 실패 시 캐시(오프라인)
+self.addEventListener("fetch", function(e){
+  var req=e.request;
+  var isHTML = req.mode==="navigate" || (req.method==="GET" && (req.headers.get("accept")||"").indexOf("text/html")>-1);
+  if(isHTML){
     e.respondWith(
-      fetch(req).then((res) => {
-        const cp = res.clone();
-        caches.open(CACHE).then((c) => c.put("./index.html", cp));
-        return res;
-      }).catch(() => caches.match("./index.html"))
+      fetch(req, {cache:"no-store"}).then(function(res){
+        var cp=res.clone(); caches.open(CACHE).then(function(c){c.put("./index.html",cp);}); return res;
+      }).catch(function(){ return caches.match("./index.html"); })
     );
     return;
   }
   e.respondWith(
-    caches.match(req).then((r) => r || fetch(req).then((res) => {
-      const cp = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, cp));
-      return res;
-    }).catch(() => r))
+    caches.match(req).then(function(r){
+      return r || fetch(req).then(function(res){ var cp=res.clone(); caches.open(CACHE).then(function(c){c.put(req,cp);}); return res; }).catch(function(){return r;});
+    })
   );
 });
