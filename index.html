@@ -297,8 +297,8 @@ function makeFrame(mode){
 
 const S = {
   mode:"main", style:"vector",
-  main:{ temple:"자광사 신도일동", left:"유주무주 상세선망 조상", widthCm:18, fs:13, a4fit:true },
-  ind:{ perRow:3, widthCm:6, fs:9, sel:0, tablets:[ blankTablet() ] }
+  main:{ temple:"자광사 신도일동", left:"유주무주 상세선망 조상", widthCm:18, fs:13, a4fit:true, autoFs:true },
+  ind:{ perRow:3, widthCm:6, fs:9, sel:0, tablets:[ blankTablet() ], autoFs:true }
 };
 S.paper={orient:"portrait"};
 function blankTablet(){
@@ -372,13 +372,27 @@ function updSizeNotes(){
   const inn=document.getElementById("iSizeNote");
   if(inn) inn.textContent="한 장 약 "+r1(S.ind.widthCm)+" × "+r1(S.ind.widthCm*ratioInd())+" cm";
 }
+function fitFrame(f){
+  var zone=f.querySelector(".zone"); if(!zone) return parseFloat(f.style.getPropertyValue("--fs"))||13;
+  var fs=parseFloat(f.style.getPropertyValue("--fs"))||16, guard=0;
+  while(guard++<90){
+    var over=false, cols=zone.querySelectorAll(".col");
+    for(var i=0;i<cols.length;i++){ if(cols[i].scrollHeight>zone.clientHeight+1){ over=true; break; } }
+    if(!over||fs<=3) break;
+    fs-=0.5; f.style.setProperty("--fs",fs+"cqw");
+  }
+  return fs;
+}
 const stageInner=document.getElementById("stageInner");
 function render(){
   stageInner.innerHTML="";
   if(S.mode==="main"){
     const f=buildMainFrame();
+    f.style.width=(S.main.widthCm*32)+"px";
     f.style.setProperty("--print-w",S.main.widthCm+"cm");
+    f.style.setProperty("--fs",(S.main.autoFs?20:S.main.fs)+"cqw");
     stageInner.appendChild(f);stageInner.style.maxWidth="none";stageInner.style.width="";
+    if(S.main.autoFs){ S.main.fs=fitFrame(f); }
   }else{
     const per=S.ind.perRow;
     const stageEl=document.querySelector(".stage");
@@ -393,10 +407,12 @@ function render(){
       f.style.flex="0 0 auto";
       f.style.width=colW+"px";
       f.style.setProperty("--print-w",S.ind.widthCm+"cm");
+      f.style.setProperty("--fs",(S.ind.autoFs?16:S.ind.fs)+"cqw");
       f.style.outline=(i===S.ind.sel?"3px solid var(--accent)":"none");
       f.style.outlineOffset="4px";f.style.cursor="pointer";
       f.onclick=()=>{S.ind.sel=i;syncIndForm();render();};
       stageInner.appendChild(f);
+      if(S.ind.autoFs) fitFrame(f);
     });
   }
   updSizeNotes();
@@ -450,8 +466,8 @@ mTemple.oninput=()=>{S.main.temple=mTemple.value;render();};
 mLeft.oninput=()=>{S.main.left=mLeft.value;render();};
 mWidth.oninput=()=>{S.main.a4fit=false;S.main.widthCm=parseFloat(mWidth.value)||18;mHeight.value=r1(S.main.widthCm*ratioMain());render();};
 mHeight.oninput=()=>{S.main.a4fit=false;const h=parseFloat(mHeight.value)||50;S.main.widthCm=r1(h/ratioMain());mWidth.value=r1(S.main.widthCm);render();};
-document.getElementById("mFsUp").onclick=()=>{S.main.fs+=1;render();};
-document.getElementById("mFsDown").onclick=()=>{S.main.fs=Math.max(4,S.main.fs-1);render();};
+document.getElementById("mFsUp").onclick=()=>{S.main.autoFs=false;S.main.fs+=1;render();};
+document.getElementById("mFsDown").onclick=()=>{S.main.autoFs=false;S.main.fs=Math.max(4,S.main.fs-1);render();};
 document.getElementById("mPrint").onclick=()=>window.print();
 
 document.getElementById("cRel").oninput=e=>{S.ind.tablets[S.ind.sel].chief.rel=e.target.value;render();};
@@ -466,8 +482,8 @@ const iWidth=document.getElementById("iWidth"),iHeight=document.getElementById("
 iWidth.value=r1(S.ind.widthCm);iHeight.value=r1(S.ind.widthCm*ratioInd());
 iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();};
 iHeight.oninput=()=>{const h=parseFloat(iHeight.value)||15;S.ind.widthCm=r1(h/ratioInd());iWidth.value=r1(S.ind.widthCm);render();};
-document.getElementById("iFsUp").onclick=()=>{S.ind.fs+=1;render();};
-document.getElementById("iFsDown").onclick=()=>{S.ind.fs=Math.max(4,S.ind.fs-1);render();};
+document.getElementById("iFsUp").onclick=()=>{S.ind.autoFs=false;S.ind.fs+=1;render();};
+document.getElementById("iFsDown").onclick=()=>{S.ind.autoFs=false;S.ind.fs=Math.max(4,S.ind.fs-1);render();};
 document.getElementById("iPrint").onclick=()=>window.print();
 document.getElementById("printBtn").onclick=()=>window.print();
 document.getElementById("newBtn").onclick=()=>{
