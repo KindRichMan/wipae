@@ -111,44 +111,8 @@
     .frame.ind{width:var(--print-w)!important}
   }
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<style>
-  html.gate-locked body > header, html.gate-locked body > .main,
-  html.gate-locked body > .pvbar, html.gate-locked body > .precise { display:none !important; }
-  #gate{position:fixed;inset:0;z-index:99999;background:#e9e5db;display:none;
-        align-items:center;justify-content:center;
-        font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
-  html.gate-locked #gate{display:flex}
-  .gate-card{background:#fff;border:1px solid #d8cfbe;border-radius:16px;padding:28px 26px;
-             width:min(360px,90vw);text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.15)}
-  .gate-emblem{width:64px;height:64px;margin:0 auto 12px;display:block}
-  .gate-title{font-size:20px;font-weight:800;color:#2b1d12;margin-bottom:4px}
-  .gate-sub{font-size:14px;color:#7a6f63;margin-bottom:18px}
-  #gateCode{width:100%;padding:13px;border:1px solid #c7bda9;border-radius:10px;
-            font-size:17px;text-align:center;letter-spacing:.04em}
-  #gateBtn{width:100%;margin-top:12px;padding:13px;border:none;border-radius:10px;
-           background:#8f2a20;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-  #gateBtn:disabled{opacity:.6;cursor:default}
-  .gate-msg{min-height:20px;margin-top:12px;font-size:14px;color:#8f2a20;font-weight:600}
-  .gate-foot{margin-top:14px;font-size:12px;color:#9b917f}
-</style>
 </head>
 <body>
-<script>document.documentElement.classList.add("gate-locked");</script>
-<div id="gate">
-  <div class="gate-card">
-    <img class="gate-emblem" src="icon-192.png" alt="">
-    <div class="gate-title">천도제 위패</div>
-    <div class="gate-sub">사용 인증 코드를 입력하세요</div>
-    <input id="gateCode" type="text" placeholder="인증 코드" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <button id="gateBtn">확인</button>
-    <div id="gateMsg" class="gate-msg"></div>
-    <div class="gate-foot">코드는 관리자에게 문의하세요.</div>
-  </div>
-</div>
 <header>
   <h1>천도제 위패 만들기</h1>
   <div class="modeTabs">
@@ -297,8 +261,8 @@ function makeFrame(mode){
 
 const S = {
   mode:"main", style:"vector",
-  main:{ temple:"자광사 신도일동", left:"유주무주 상세선망 조상", widthCm:18, fs:13, a4fit:true, autoFs:true },
-  ind:{ perRow:3, widthCm:6, fs:9, sel:0, tablets:[ blankTablet() ], autoFs:true }
+  main:{ temple:"자광사 신도일동", left:"유주무주 상세선망 조상", widthCm:18, fs:13, a4fit:true },
+  ind:{ perRow:3, widthCm:6, fs:9, sel:0, tablets:[ blankTablet() ] }
 };
 S.paper={orient:"portrait"};
 function blankTablet(){
@@ -372,31 +336,20 @@ function updSizeNotes(){
   const inn=document.getElementById("iSizeNote");
   if(inn) inn.textContent="한 장 약 "+r1(S.ind.widthCm)+" × "+r1(S.ind.widthCm*ratioInd())+" cm";
 }
-function fitFrame(f){
-  var zone=f.querySelector(".zone"); if(!zone) return parseFloat(f.style.getPropertyValue("--fs"))||13;
-  var fs=parseFloat(f.style.getPropertyValue("--fs"))||16, guard=0;
-  while(guard++<90){
-    var over=false, cols=zone.querySelectorAll(".col");
-    for(var i=0;i<cols.length;i++){ if(cols[i].scrollHeight>zone.clientHeight+1){ over=true; break; } }
-    if(!over||fs<=3) break;
-    fs-=0.5; f.style.setProperty("--fs",fs+"cqw");
-  }
-  return fs;
-}
 const stageInner=document.getElementById("stageInner");
 function render(){
   stageInner.innerHTML="";
   if(S.mode==="main"){
     const f=buildMainFrame();
-    f.style.width=(S.main.widthCm*32)+"px";
     f.style.setProperty("--print-w",S.main.widthCm+"cm");
-    f.style.setProperty("--fs",(S.main.autoFs?20:S.main.fs)+"cqw");
     stageInner.appendChild(f);stageInner.style.maxWidth="none";stageInner.style.width="";
-    if(S.main.autoFs){ S.main.fs=fitFrame(f); }
   }else{
     const per=S.ind.perRow;
+    const stageEl=document.querySelector(".stage");
     const gap=16;
-    let colW=Math.max(70, Math.round(S.ind.widthCm*32));
+    const avail=Math.max(240,(stageEl.clientWidth||900)-52);
+    let colW=Math.floor((avail-(per-1)*gap)/per);
+    colW=Math.max(90,Math.min(230,colW));
     stageInner.style.width=(per*colW+(per-1)*gap)+"px";
     stageInner.style.maxWidth="none";
     S.ind.tablets.forEach((t,i)=>{
@@ -404,12 +357,10 @@ function render(){
       f.style.flex="0 0 auto";
       f.style.width=colW+"px";
       f.style.setProperty("--print-w",S.ind.widthCm+"cm");
-      f.style.setProperty("--fs",(S.ind.autoFs?16:S.ind.fs)+"cqw");
       f.style.outline=(i===S.ind.sel?"3px solid var(--accent)":"none");
       f.style.outlineOffset="4px";f.style.cursor="pointer";
       f.onclick=()=>{S.ind.sel=i;syncIndForm();render();};
       stageInner.appendChild(f);
-      if(S.ind.autoFs) fitFrame(f);
     });
   }
   updSizeNotes();
@@ -463,8 +414,8 @@ mTemple.oninput=()=>{S.main.temple=mTemple.value;render();};
 mLeft.oninput=()=>{S.main.left=mLeft.value;render();};
 mWidth.oninput=()=>{S.main.a4fit=false;S.main.widthCm=parseFloat(mWidth.value)||18;mHeight.value=r1(S.main.widthCm*ratioMain());render();};
 mHeight.oninput=()=>{S.main.a4fit=false;const h=parseFloat(mHeight.value)||50;S.main.widthCm=r1(h/ratioMain());mWidth.value=r1(S.main.widthCm);render();};
-document.getElementById("mFsUp").onclick=()=>{S.main.autoFs=false;S.main.fs+=1;render();};
-document.getElementById("mFsDown").onclick=()=>{S.main.autoFs=false;S.main.fs=Math.max(4,S.main.fs-1);render();};
+document.getElementById("mFsUp").onclick=()=>{S.main.fs+=1;render();};
+document.getElementById("mFsDown").onclick=()=>{S.main.fs=Math.max(4,S.main.fs-1);render();};
 document.getElementById("mPrint").onclick=()=>window.print();
 
 document.getElementById("cRel").oninput=e=>{S.ind.tablets[S.ind.sel].chief.rel=e.target.value;render();};
@@ -479,8 +430,8 @@ const iWidth=document.getElementById("iWidth"),iHeight=document.getElementById("
 iWidth.value=r1(S.ind.widthCm);iHeight.value=r1(S.ind.widthCm*ratioInd());
 iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();};
 iHeight.oninput=()=>{const h=parseFloat(iHeight.value)||15;S.ind.widthCm=r1(h/ratioInd());iWidth.value=r1(S.ind.widthCm);render();};
-document.getElementById("iFsUp").onclick=()=>{S.ind.autoFs=false;S.ind.fs+=1;render();};
-document.getElementById("iFsDown").onclick=()=>{S.ind.autoFs=false;S.ind.fs=Math.max(4,S.ind.fs-1);render();};
+document.getElementById("iFsUp").onclick=()=>{S.ind.fs+=1;render();};
+document.getElementById("iFsDown").onclick=()=>{S.ind.fs=Math.max(4,S.ind.fs-1);render();};
 document.getElementById("iPrint").onclick=()=>window.print();
 document.getElementById("printBtn").onclick=()=>window.print();
 document.getElementById("newBtn").onclick=()=>{
@@ -552,75 +503,7 @@ document.getElementById("precClose").onclick=()=>{document.body.classList.remove
 document.getElementById("precOrient").onclick=()=>{S.paper.orient=(S.paper.orient==="portrait"?"landscape":"portrait");renderPrecise();};
 document.getElementById("precPrint").onclick=()=>window.print();
 syncIndForm();applyA4Main();render();
-(function(){function _refit(){render();}
-  if(typeof requestAnimationFrame!=="undefined"){requestAnimationFrame(function(){requestAnimationFrame(_refit);});}
-  window.addEventListener("load",_refit);
-  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(_refit);}
-})();
 </script>
-<script>
-(function(){
-  var html=document.documentElement;
-  var msg=document.getElementById("gateMsg");
-  var btn=document.getElementById("gateBtn");
-  var input=document.getElementById("gateCode");
-  function unlock(){ html.classList.remove("gate-locked"); }
-  function fail(t){ msg.textContent=t; }
-
-  // 이미 이 기기에서 인증되었으면 오프라인에서도 바로 열기
-  if(localStorage.getItem("wipae_verified")==="1"){ unlock(); return; }
-
-  var ready=false, auth=null, db=null;
-  try{
-    if(!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId){
-      fail("설정 필요: 관리자에게 문의하세요."); 
-    } else {
-      firebase.initializeApp(window.FIREBASE_CONFIG);
-      auth=firebase.auth(); db=firebase.firestore();
-      auth.signInAnonymously().then(function(){ ready=true; })
-        .catch(function(){ fail("인증 서버 연결 실패 — 인터넷을 확인하세요."); });
-    }
-  }catch(e){ fail("초기화 오류 — 관리자에게 문의하세요."); }
-
-  function claim(){
-    var code=(input.value||"").trim();
-    if(!code){ fail("코드를 입력하세요."); return; }
-    if(!ready || !auth || !auth.currentUser){ fail("잠시 후 다시 시도하세요 (서버 준비 중)."); return; }
-    btn.disabled=true; fail("확인 중...");
-    var uid=auth.currentUser.uid;
-    db.runTransaction(function(t){
-      var ref=db.collection("codes").doc(code);
-      return t.get(ref).then(function(snap){
-        if(!snap.exists) return Promise.reject("invalid");
-        var d=snap.data()||{};
-        if(d.claimedBy && d.claimedBy!==uid) return Promise.reject("used");
-        t.set(ref,{claimedBy:uid, claimedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-        return null;
-      });
-    }).then(function(){
-      localStorage.setItem("wipae_verified","1");
-      localStorage.setItem("wipae_code",code);
-      msg.textContent=""; unlock();
-    }).catch(function(err){
-      if(err==="invalid") fail("등록되지 않은 코드입니다.");
-      else if(err==="used") fail("이미 다른 기기에서 사용 중인 코드입니다.");
-      else fail("오류가 발생했습니다 — 인터넷/설정을 확인하세요.");
-    }).finally(function(){ btn.disabled=false; });
-  }
-  btn.addEventListener("click", claim);
-  input.addEventListener("keydown", function(e){ if(e.key==="Enter") claim(); });
-})();
-</script>
-<script>
-if("serviceWorker" in navigator){
-  window.addEventListener("load",function(){
-    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(reg){ if(reg.update){reg.update();} }).catch(function(){});
-  });
-  var _wipaeReloaded=false;
-  navigator.serviceWorker.addEventListener("controllerchange",function(){
-    if(_wipaeReloaded) return; _wipaeReloaded=true; location.reload();
-  });
-}
-</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script>
 </body>
 </html>
