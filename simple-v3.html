@@ -3,48 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>위패 작성기 v3 - 기존 기능 + 간편 입력</title>
-<style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f4f1eb}
-iframe{border:0;width:100%;height:100%;display:block}
-</style>
+<title>위패 작성기 v3 - 기존 기능 + 간편 입력 + 저장/백업</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f4f1eb}iframe{border:0;width:100%;height:100%;display:block}</style>
 </head>
 <body>
 <iframe id="app" src="index.html" title="위패 작성기"></iframe>
 <script>
 const frame=document.getElementById('app');
 frame.addEventListener('load',()=>{
-  const d=frame.contentDocument;
-  if(!d)return;
-
-  d.title='천도제 위패 만들기 - 간편 입력 검토본';
-
-  // 기존 앱은 그대로 유지하고, 신규 한자 입력 도우미만 추가한다.
-  if(!d.querySelector('link[data-hanja-helper]')){
-    const css=d.createElement('link');
-    css.rel='stylesheet';
-    css.href='hanja-helper.css';
-    css.dataset.hanjaHelper='1';
-    d.head.appendChild(css);
-  }
-
-  if(!d.querySelector('script[data-hanja-helper]')){
-    const js=d.createElement('script');
-    js.src='hanja-helper.js';
-    js.dataset.hanjaHelper='1';
-    d.body.appendChild(js);
-  }
-
-  // 검토본임을 알리되 원본 UI/기능은 변경하지 않는다.
-  const note=d.createElement('div');
-  note.id='simpleV3Notice';
-  note.textContent='간편 입력 기능 추가 검토본 · 기존 도안/고정 한자/저장·출력 기능 유지';
-  note.style.cssText='position:fixed;right:14px;bottom:14px;z-index:8500;background:rgba(70,52,38,.92);color:#fff;padding:9px 12px;border-radius:10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.18);pointer-events:none';
-  d.body.appendChild(note);
-
-  const style=d.createElement('style');
-  style.textContent='@media print{#simpleV3Notice{display:none!important}}';
-  d.head.appendChild(style);
+  const d=frame.contentDocument;if(!d)return;
+  d.title='천도제 위패 만들기 - 통합 검토본';
+  function css(href,key){if(d.querySelector(`link[data-${key}]`))return;const x=d.createElement('link');x.rel='stylesheet';x.href=href;x.setAttribute(`data-${key}`,'1');d.head.appendChild(x)}
+  function js(src,key){if(d.querySelector(`script[data-${key}]`))return;const x=d.createElement('script');x.src=src;x.setAttribute(`data-${key}`,'1');d.body.appendChild(x)}
+  css('hanja-helper.css','hanja-helper');
+  js('hanja-helper.js','hanja-helper');
+  js('easy-tools.js','easy-tools');
+  const note=d.createElement('div');note.id='simpleV3Notice';note.textContent='통합 검토본 · 기존 기능 유지 + 한자 도우미 + 위패 저장/백업';note.style.cssText='position:fixed;right:14px;bottom:14px;z-index:8500;background:rgba(70,52,38,.92);color:#fff;padding:9px 12px;border-radius:10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.18);pointer-events:none';d.body.appendChild(note);
+  const style=d.createElement('style');style.textContent='@media print{#simpleV3Notice{display:none!important}}';d.head.appendChild(style);
 });
 </script>
 </body>
