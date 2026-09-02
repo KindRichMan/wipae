@@ -97,7 +97,8 @@
   .precise .pbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);
                  padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .precise .pbody{flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:10px;align-items:center}
-  .sheet{background:#fff;box-shadow:0 6px 22px rgba(0,0,0,.18);position:relative;overflow:visible}
+  .sheetWrap{position:relative;overflow:hidden;background:#fff;box-shadow:0 6px 22px rgba(0,0,0,.18);flex:0 0 auto}
+  .sheet{background:#fff;position:absolute;top:0;left:0;overflow:visible}
   .sheetcap{font-size:12px;color:var(--sub);margin-bottom:16px}
   .pwarn{background:#fff3f0;border:1px solid #e6b0a6;color:#8f2a20;padding:8px 12px;border-radius:8px;
          font-size:14px;max-width:640px}
@@ -117,9 +118,13 @@
     body.precise-on .precise{position:static!important;display:block!important;background:#fff;
                              overflow:visible!important;height:auto!important;inset:auto!important}
     body.precise-on .precise .pbar{display:none!important}
-    body.precise-on .precise .pbody{display:block!important;padding:0!important;
+    body.precise-on .precise .pbody{display:block!important;padding:0!important;margin:0!important;
                                     overflow:visible!important;height:auto!important}
-    body.precise-on .sheet{box-shadow:none!important;margin:0 auto!important;break-inside:avoid}
+    /* 인쇄: wrapper·scale 제거 → .sheet 를 실제 mm 크기로 출력 */
+    body.precise-on .sheetWrap{width:auto!important;height:auto!important;overflow:visible!important;
+                               box-shadow:none!important;background:none!important;display:block!important;break-inside:avoid}
+    body.precise-on .sheet{position:static!important;transform:none!important;box-shadow:none!important;
+                           margin:0!important;break-inside:avoid}
     body.precise-on .sheetcap,body.precise-on .pwarn{display:none!important}
   }
 </style>
@@ -284,7 +289,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-02f";
+const WIPAE_BUILD = "build 2026-09-02g";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -566,8 +571,13 @@ function renderPreciseInner(){
   const body=document.getElementById("precBody"); body.innerHTML="";
   const isMain=S.mode==="main";
   const margin=8, gap=6;
-  // 개인 모드: 위패 개수에 맞춰 한 줄 개수를 정하고, 현재 크기로 한 줄에 안 들어가면 A4 방향·크기 자동 맞춤
-  if(!isMain){
+  if(isMain){
+    // 메인 위패는 A4 세로 기준으로 설계됨 → 방향 고정(개인에서 넘어와 landscape로 남는 문제 방지)
+    S.paper.orient="portrait";
+    if(!(S.main.widthCm>0)) applyA4Main();
+  } else {
+    if(!(S.ind.widthCm>0)) S.ind.widthCm=6;
+    // 개인: 위패 개수에 맞춰 한 줄 개수를 정하고, 현재 크기로 한 줄에 안 들어가면 A4 방향·크기 자동 맞춤
     const per=effPerRow();
     setPerRow(per);
     const uW=(S.paper.orient==="portrait"?210:297)-2*margin;
@@ -598,40 +608,41 @@ function renderPreciseInner(){
     w.textContent=`⚠ 폭이 부족해 한 줄에 ${cols}개만 들어갑니다(요청 ${perRow}개). 위패 가로를 줄이거나 A4 가로로 전환하세요.`;
     body.appendChild(w);
   }
-  // 인쇄 전용 스타일: 화면 미리보기는 px 비율로 축소해 보여주지만,
-  // 실제 인쇄는 mm 단위로 A4에 딱 맞게 (용지 방향 포함) 출력되도록 강제한다.
+  // 용지 크기만 지정(방향 포함). 여백은 .sheet 안쪽 padding 으로 처리하므로 @page margin 은 0.
   var pageStyle=document.getElementById("precPageStyle");
   if(!pageStyle){pageStyle=document.createElement("style");pageStyle.id="precPageStyle";document.head.appendChild(pageStyle);}
-  var pJustify=(isMain?S.main.align:S.ind.align)||"center";
-  pageStyle.textContent=
-    "@page{size:A4 "+(port?"portrait":"landscape")+";margin:"+margin+"mm}"+
-    "@media print{"+
-      "body.precise-on .precise .pbody{gap:0!important}"+
-      "body.precise-on .sheet{width:"+usableW+"mm!important;min-height:"+usableH+"mm!important;height:auto!important;padding:0!important;"+
-        "grid-template-columns:repeat("+cols+","+tabWmm+"mm)!important;grid-auto-rows:auto!important;"+
-        "gap:"+gap+"mm!important;justify-content:"+pJustify+"!important;align-content:start!important;"+
-        "box-shadow:none!important;margin:0 auto!important;overflow:visible!important}"+
-      "body.precise-on .frame.ind,body.precise-on .frame.main{width:"+tabWmm+"mm!important;max-width:none!important;height:auto!important}"+
-    "}";
-  const avail=Math.min(window.innerWidth-80, port?560:760);
-  const scale=avail/Wmm;
+  pageStyle.textContent="@page{size:"+Wmm+"mm "+Hmm+"mm;margin:0}";
+
+  const pAlign=(isMain?S.main.align:S.ind.align)||"center";
+  // .sheet 는 항상 실제 mm 크기로 만든다(= 인쇄 결과). 화면에서는 wrapper 안에서 축소해 보여준다.
+  const PXMM=96/25.4;                                   // 1mm ≈ 3.78 CSS px
+  const availPx=Math.min(window.innerWidth-80, port?560:780);
+  const scale=availPx/(Wmm*PXMM);                       // 실제 mm → 화면 표시 배율
   for(let p=0;p<pages;p++){
+    const wrap=document.createElement("div");wrap.className="sheetWrap";
+    wrap.style.width=(Wmm*PXMM*scale)+"px";wrap.style.height=(Hmm*PXMM*scale)+"px";
+    wrap.style.pageBreakAfter=(p<pages-1)?"always":"auto";
+    wrap.style.breakAfter=(p<pages-1)?"page":"auto";
+
     const sheet=document.createElement("div");sheet.className="sheet";
-    sheet.style.width=(Wmm*scale)+"px";sheet.style.height=(Hmm*scale)+"px";
-    sheet.style.padding=(margin*scale)+"px";sheet.style.display="grid";
-    sheet.style.gridTemplateColumns=`repeat(${cols}, ${tabWmm*scale}px)`;
-    sheet.style.gridAutoRows=(tabHmm*scale)+"px";
-    sheet.style.gap=(gap*scale)+"px";
-    sheet.style.alignContent="center";sheet.style.justifyContent=(isMain?S.main.align:S.ind.align);
+    sheet.style.width=Wmm+"mm";sheet.style.height=Hmm+"mm";
+    sheet.style.padding=margin+"mm";sheet.style.display="grid";
+    sheet.style.gridTemplateColumns=`repeat(${cols}, ${tabWmm}mm)`;
+    sheet.style.gridAutoRows=tabHmm+"mm";
+    sheet.style.gap=gap+"mm";
+    sheet.style.alignContent="start";sheet.style.justifyContent=pAlign;
+    sheet.style.transformOrigin="top left";
+    sheet.style.transform="scale("+scale+")";
+
     const slice=isMain?[null]:items.slice(p*perPage,(p+1)*perPage);
     slice.forEach(t=>{
       const f=isMain?buildMainFrame():buildIndFrame(t,S.ind.fs);
-      f.style.width=(tabWmm*scale)+"px";f.style.outline="none";f.style.cursor="default";f.onclick=null;
+      f.style.width=tabWmm+"mm";f.style.setProperty("--print-w",tabWmm+"mm");
+      f.style.outline="none";f.style.cursor="default";f.onclick=null;
       sheet.appendChild(f);
     });
-    sheet.style.pageBreakAfter=(p<pages-1)?"always":"auto";
-    sheet.style.breakAfter=(p<pages-1)?"page":"auto";
-    body.appendChild(sheet);
+    wrap.appendChild(sheet);
+    body.appendChild(wrap);
     const cap=document.createElement("div");cap.className="sheetcap";
     cap.textContent=`A4 ${port?"세로":"가로"} · ${Wmm}×${Hmm}mm  (${p+1}/${pages}쪽)`;
     body.appendChild(cap);

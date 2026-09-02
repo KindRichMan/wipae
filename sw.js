@@ -1,4 +1,4 @@
-const CACHE = "wipae-cache-v11";
+const CACHE = "wipae-cache-v12";
 const ASSETS = [
   "./",
   "./index.html",
