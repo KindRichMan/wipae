@@ -502,7 +502,7 @@ document.getElementById("addDead").onclick=()=>{S.ind.tablets[S.ind.sel].dead.pu
 document.getElementById("addTablet").onclick=()=>{S.ind.tablets.push(blankTablet());S.ind.sel=S.ind.tablets.length-1;syncIndForm();render();};
 document.getElementById("dupTablet").onclick=()=>{const c=JSON.parse(JSON.stringify(S.ind.tablets[S.ind.sel]));S.ind.tablets.splice(S.ind.sel+1,0,c);S.ind.sel++;syncIndForm();render();};
 document.getElementById("delTablet").onclick=()=>{if(S.ind.tablets.length<=1){S.ind.tablets=[blankTablet()];S.ind.sel=0;}else{S.ind.tablets.splice(S.ind.sel,1);S.ind.sel=Math.max(0,S.ind.sel-1);}syncIndForm();render();};
-document.querySelectorAll(".perrow").forEach(b=>b.onclick=()=>{document.querySelectorAll(".perrow").forEach(x=>x.classList.remove("on"));b.classList.add("on");S.ind.perRow=parseInt(b.dataset.n);render();});
+document.querySelectorAll(".perrow").forEach(b=>b.onclick=()=>{document.querySelectorAll(".perrow").forEach(x=>x.classList.remove("on"));b.classList.add("on");S.ind.perRow=parseInt(b.dataset.n);fitIndForPrint();render();if(document.body.classList.contains("precise-on"))renderPrecise();});
 const iWidth=document.getElementById("iWidth"),iHeight=document.getElementById("iHeight");
 iWidth.value=r1(S.ind.widthCm);iHeight.value=r1(S.ind.widthCm*ratioInd());
 iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();};
@@ -528,6 +528,20 @@ document.getElementById("mFitA4").onclick=()=>applyA4Main();
 document.getElementById("previewBtn").onclick=()=>{document.body.classList.add("preview");render();};
 document.getElementById("pvClose").onclick=()=>{document.body.classList.remove("preview");render();};
 document.getElementById("pvPrint").onclick=()=>{document.body.classList.remove("preview");document.body.classList.add("precise-on");renderPrecise();};
+// 개인 위패: '한 줄에 N개'가 A4 한 장에 딱 맞도록 용지 방향과 위패 가로를 계산.
+// 3개 이하 = A4 세로, 4개 이상 = A4 가로. 한 줄에 N개가 정확히 한 페이지에 들어간다.
+function fitIndForPrint(){
+  var per=S.ind.perRow||3, m=8, g=6;
+  var land=per>=4;
+  S.paper.orient=land?"landscape":"portrait";
+  var Wmm=land?297:210, Hmm=land?210:297;
+  var uW=Wmm-2*m, uH=Hmm-2*m;
+  var w=Math.min((uW-(per-1)*g)/per, uH/ratioInd());
+  S.ind.widthCm=Math.max(2, Math.floor(w)/10);     // 0.1cm 단위로 내림 → 반올림 초과 방지
+  var iw=document.getElementById("iWidth"), ih=document.getElementById("iHeight");
+  if(iw) iw.value=r1(S.ind.widthCm);
+  if(ih) ih.value=r1(S.ind.widthCm*ratioInd());
+}
 function renderPrecise(){
   const body=document.getElementById("precBody"); body.innerHTML="";
   const port=S.paper.orient==="portrait";
@@ -553,6 +567,22 @@ function renderPrecise(){
     w.textContent=`⚠ 폭이 부족해 한 줄에 ${cols}개만 들어갑니다(요청 ${S.ind.perRow}개). 위패 가로를 줄이거나 A4 가로로 전환하세요.`;
     body.appendChild(w);
   }
+  // 인쇄 전용 스타일: 화면 미리보기는 px 비율로 축소해 보여주지만,
+  // 실제 인쇄는 mm 단위로 A4에 딱 맞게 (용지 방향 포함) 출력되도록 강제한다.
+  var pageStyle=document.getElementById("precPageStyle");
+  if(!pageStyle){pageStyle=document.createElement("style");pageStyle.id="precPageStyle";document.head.appendChild(pageStyle);}
+  var pJustify=(isMain?S.main.align:S.ind.align)||"center";
+  pageStyle.textContent=
+    "@page{size:A4 "+(port?"portrait":"landscape")+";margin:"+margin+"mm}"+
+    "@media print{"+
+      "body.precise-on .precise .pbody{gap:0!important;padding:0!important}"+
+      "body.precise-on .sheet{width:"+usableW+"mm!important;height:"+usableH+"mm!important;padding:0!important;"+
+        "grid-template-columns:repeat("+cols+","+tabWmm+"mm)!important;grid-auto-rows:"+tabHmm+"mm!important;"+
+        "gap:"+gap+"mm!important;justify-content:"+pJustify+"!important;align-content:start!important;"+
+        "box-shadow:none!important;margin:0!important;overflow:hidden;break-after:page;page-break-after:always}"+
+      "body.precise-on .sheet:last-of-type{break-after:auto;page-break-after:auto}"+
+      "body.precise-on .frame.ind,body.precise-on .frame.main{width:"+tabWmm+"mm!important;max-width:none!important}"+
+    "}";
   const avail=Math.min(window.innerWidth-80, port?560:760);
   const scale=avail/Wmm;
   for(let p=0;p<pages;p++){
@@ -599,10 +629,7 @@ function applyFont(){
       var mw=document.getElementById("mWidth"), mh=document.getElementById("mHeight");
       if(mw)mw.value=r1(S.main.widthCm); if(mh)mh.value=r1(S.main.widthCm*ratioMain());
     } else {
-      var per=S.ind.perRow, wW=(uW-(per-1)*gap)/per, wH=uH/ratioInd();
-      w=Math.min(wW,wH); S.ind.widthCm=r1(w/10);
-      var iw=document.getElementById("iWidth"), ih=document.getElementById("iHeight");
-      if(iw)iw.value=r1(S.ind.widthCm); if(ih)ih.value=r1(S.ind.widthCm*ratioInd());
+      fitIndForPrint();   // 한 줄에 N개 → A4 방향+가로 자동 계산(3개=세로, 4개=가로)
     }
     render(); renderPrecise();
   };
@@ -675,11 +702,20 @@ syncIndForm();applyA4Main();render();
 <script>
 if("serviceWorker" in navigator){
   window.addEventListener("load",function(){
-    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(reg){ if(reg.update){reg.update();} }).catch(function(){});
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(reg){
+      function check(){ try{ if(reg.update) reg.update(); }catch(e){} }
+      check();
+      // 앱이 다시 화면에 보일 때 + 30분마다 새 버전 확인 → 설치된 앱도 자동으로 최신화
+      setInterval(check, 30*60*1000);
+      document.addEventListener("visibilitychange",function(){ if(document.visibilityState==="visible") check(); });
+    }).catch(function(){});
   });
   var _wipaeReloaded=false;
   navigator.serviceWorker.addEventListener("controllerchange",function(){
-    if(_wipaeReloaded) return; _wipaeReloaded=true; location.reload();
+    if(_wipaeReloaded) return; _wipaeReloaded=true;
+    // 새 버전이 적용되기 직전, 작성 중인 내용을 임시 저장했다가 새로고침 후 복원한다.
+    try{ if(window.__wipaeStashState) window.__wipaeStashState(); }catch(e){}
+    location.reload();
   });
 }
 </script>

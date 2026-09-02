@@ -224,6 +224,19 @@ function inject(){
   $('#easyReset').onclick=resetLayout;$('#easySaveBtn').onclick=saveCurrent;$('#easyBackup').onclick=backup;$('#easyRestore').onclick=()=>$('#easyRestoreFile').click();$('#easyRestoreFile').onchange=e=>{if(e.target.files[0])restoreFile(e.target.files[0]);e.target.value='';};
   renderList();syncSizeFields();applyLayout(savedLayout());
   document.addEventListener('click',e=>{if(e.target.closest('.modeTab,.styleTab,.perrow,#newBtn'))setTimeout(()=>{syncSizeFields();applyVisual(false);},20);},true);
+
+  // 서비스워커 자동 업데이트로 새로고침될 때 작성 중인 내용이 날아가지 않도록 임시 보관/복원
+  window.__wipaeStashState=function(){
+    try{sessionStorage.setItem('wipae.reload.state',JSON.stringify({content:captureContent(),layout:currentLayout(),t:Date.now()}));}catch(e){}
+  };
+  try{
+    const raw=sessionStorage.getItem('wipae.reload.state');
+    if(raw){
+      sessionStorage.removeItem('wipae.reload.state');
+      const d=JSON.parse(raw);
+      if(d&&Date.now()-d.t<30000){restoreContent(d.content);setTimeout(()=>applyLayout(d.layout),80);}
+    }
+  }catch(e){}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',inject);else inject();
 })();
