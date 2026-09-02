@@ -289,7 +289,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-02h";
+const WIPAE_BUILD = "build 2026-09-02i";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -540,20 +540,30 @@ document.getElementById("mFitA4").onclick=()=>{applyA4Main();rp();};
 document.getElementById("previewBtn").onclick=()=>{document.body.classList.add("preview");render();};
 document.getElementById("pvClose").onclick=()=>{document.body.classList.remove("preview");render();};
 document.getElementById("pvPrint").onclick=()=>{document.body.classList.remove("preview");document.body.classList.add("precise-on");renderPrecise();};
-// 개인 위패: 한 페이지(한 줄)에 per개가 딱 들어가도록 용지 방향·위패 가로 계산.
-// per 3개 이하 = A4 세로, 4개 = A4 가로.
+// 개인 위패: per(한 줄 개수) → 용지 방향. 3개 이하 = A4 세로, 4개 = A4 가로.
+function indOrient(per){ return (Math.min(4,per||S.ind.perRow||3)>=4)?"landscape":"portrait"; }
+// per개를 A4 한 줄에 넣을 때 위패가 종이 밖으로 안 나가는 최대 가로(cm)
+function indMaxWidthCm(per){
+  per=Math.max(1,Math.min(4, per||S.ind.perRow||3));
+  var m=8,g=6, land=per>=4;
+  var uW=(land?297:210)-2*m, uH=(land?210:297)-2*m;
+  return Math.max(2, Math.floor(Math.min((uW-(per-1)*g)/per, uH/ratioInd()))/10);
+}
+function setIndWidth(cm){
+  S.ind.widthCm=cm;
+  var iw=document.getElementById("iWidth"), ih=document.getElementById("iHeight");
+  if(iw) iw.value=r1(cm);
+  if(ih) ih.value=r1(cm*ratioInd());
+}
+// '꽉 채움' — per개를 A4 한 장 폭에 가득 차게(버튼/위패 추가 시 사용)
 function fitIndForPrint(per){
   per=Math.max(1,Math.min(4, per||S.ind.perRow||3));
-  var m=8, g=6;
-  var land=per>=4;
-  S.paper.orient=land?"landscape":"portrait";
-  var Wmm=land?297:210, Hmm=land?210:297;
-  var uW=Wmm-2*m, uH=Hmm-2*m;
-  var w=Math.min((uW-(per-1)*g)/per, uH/ratioInd());
-  S.ind.widthCm=Math.max(2, Math.floor(w)/10);     // 0.1cm 단위로 내림 → 반올림 초과 방지
-  var iw=document.getElementById("iWidth"), ih=document.getElementById("iHeight");
-  if(iw) iw.value=r1(S.ind.widthCm);
-  if(ih) ih.value=r1(S.ind.widthCm*ratioInd());
+  S.paper.orient=indOrient(per);
+  setIndWidth(indMaxWidthCm(per));
+}
+function mainMaxWidthCm(){
+  var m=8;
+  return Math.max(3, Math.floor(Math.min(210-2*m, (297-2*m)/ratioMain()))/10);
 }
 function setMainWidth(cm){
   S.main.widthCm=cm; S.main.a4fit=false;
@@ -579,20 +589,20 @@ function renderPreciseInner(){
   const body=document.getElementById("precBody"); body.innerHTML="";
   const isMain=S.mode==="main";
   const margin=8, gap=6;
+  // 위패 크기(가로/세로)는 사용자가 조정한 값을 그대로 쓴다.
+  // 단, A4 한 장을 벗어나지 않도록 최대값으로만 잘라준다(= 그 최대값이 '꽉 채움').
   if(isMain){
-    // 메인 위패는 A4 세로 기준으로 설계됨 → 방향 고정(개인에서 넘어와 landscape로 남는 문제 방지)
-    S.paper.orient="portrait";
-    if(!(S.main.widthCm>0)) applyA4Main();
-    // A4 인쇄영역보다 크면 자동으로 줄여 한 장에 맞춤(작게 지정한 값은 그대로 존중)
-    const uW=210-2*margin, uH=297-2*margin, fitW=Math.min(uW, uH/ratioMain());
-    if(S.main.widthCm*10 > fitW+0.5) setMainWidth(Math.floor(fitW)/10);
+    S.paper.orient="portrait";                       // 메인 위패는 세로로 길어 A4 세로 고정
+    const maxW=mainMaxWidthCm();
+    if(!(S.main.widthCm>0)) setMainWidth(maxW);
+    else if(S.main.widthCm>maxW) setMainWidth(maxW);
   } else {
-    // 개인 N개 인쇄: 항상 A4 한 장에 N개가 꽉 차도록 자동 맞춤(3개 이하=세로, 4개=가로).
-    // 위패 가로는 이 배치에 의해 결정되므로 정밀 미리보기에서는 자동값을 쓴다.
-    if(!(S.ind.widthCm>0)) S.ind.widthCm=6;
     const per=effPerRow();
     setPerRow(per);
-    fitIndForPrint(per);
+    S.paper.orient=indOrient(per);
+    const maxW=indMaxWidthCm(per);
+    if(!(S.ind.widthCm>0)) setIndWidth(maxW);
+    else if(S.ind.widthCm>maxW) setIndWidth(maxW);
   }
   const port=S.paper.orient==="portrait";
   const Wmm=port?210:297, Hmm=port?297:210;
@@ -606,9 +616,10 @@ function renderPreciseInner(){
   const items=isMain?[null]:S.ind.tablets;
   const total=items.length;
   const pages=Math.max(1,Math.ceil(total/perPage));
+  const maxWcm=isMain?mainMaxWidthCm():indMaxWidthCm(perRow);
   document.getElementById("precInfo").textContent=
-    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽`
-    +(isMain?"":` · 한 줄 ${perRow}개 자동 맞춤`)+` · ${WIPAE_BUILD}`;
+    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm`
+    +` (최대 가로 ${r1(maxWcm)}cm) · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽 · ${WIPAE_BUILD}`;
   if(tabHmm>usableH||tabWmm>usableW){
     const w=document.createElement("div");w.className="pwarn";
     w.textContent=`⚠ 이 위패(${r1(tabWmm/10)}×${r1(tabHmm/10)}cm)는 A4 ${port?"세로":"가로"} 인쇄영역(${r1(usableW/10)}×${r1(usableH/10)}cm)보다 큽니다. 크기를 줄이거나 더 큰 용지를 쓰세요. (가로 전환도 시도해보세요)`;
