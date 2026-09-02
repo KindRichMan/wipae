@@ -289,7 +289,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-02g";
+const WIPAE_BUILD = "build 2026-09-02h";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -501,10 +501,10 @@ mTemple.value=S.main.temple;mLeft.value=S.main.left;
 mWidth.value=r1(S.main.widthCm);mHeight.value=r1(S.main.widthCm*ratioMain());
 mTemple.oninput=()=>{S.main.temple=mTemple.value;render();};
 mLeft.oninput=()=>{S.main.left=mLeft.value;render();};
-mWidth.oninput=()=>{S.main.a4fit=false;S.main.widthCm=parseFloat(mWidth.value)||18;mHeight.value=r1(S.main.widthCm*ratioMain());render();};
-mHeight.oninput=()=>{S.main.a4fit=false;const h=parseFloat(mHeight.value)||50;S.main.widthCm=r1(h/ratioMain());mWidth.value=r1(S.main.widthCm);render();};
-document.getElementById("mFsUp").onclick=()=>{S.main.autoFs=false;S.main.fs+=1;render();};
-document.getElementById("mFsDown").onclick=()=>{S.main.autoFs=false;S.main.fs=Math.max(4,S.main.fs-1);render();};
+mWidth.oninput=()=>{S.main.a4fit=false;S.main.widthCm=parseFloat(mWidth.value)||18;mHeight.value=r1(S.main.widthCm*ratioMain());render();rp();};
+mHeight.oninput=()=>{S.main.a4fit=false;const h=parseFloat(mHeight.value)||50;S.main.widthCm=r1(h/ratioMain());mWidth.value=r1(S.main.widthCm);render();rp();};
+document.getElementById("mFsUp").onclick=()=>{S.main.autoFs=false;S.main.fs+=1;render();rp();};
+document.getElementById("mFsDown").onclick=()=>{S.main.autoFs=false;S.main.fs=Math.max(4,S.main.fs-1);render();rp();};
 document.getElementById("mPrint").onclick=()=>{document.body.classList.add("precise-on");renderPrecise();};
 
 document.getElementById("cRel").oninput=e=>{S.ind.tablets[S.ind.sel].chief.rel=e.target.value;render();};
@@ -517,10 +517,10 @@ document.getElementById("delTablet").onclick=()=>{if(S.ind.tablets.length<=1){S.
 document.querySelectorAll(".perrow").forEach(b=>b.onclick=()=>{setPerRow(parseInt(b.dataset.n));fitIndForPrint(effPerRow());render();if(document.body.classList.contains("precise-on"))renderPrecise();});
 const iWidth=document.getElementById("iWidth"),iHeight=document.getElementById("iHeight");
 iWidth.value=r1(S.ind.widthCm);iHeight.value=r1(S.ind.widthCm*ratioInd());
-iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();};
-iHeight.oninput=()=>{const h=parseFloat(iHeight.value)||15;S.ind.widthCm=r1(h/ratioInd());iWidth.value=r1(S.ind.widthCm);render();};
-document.getElementById("iFsUp").onclick=()=>{S.ind.autoFs=false;S.ind.fs+=1;render();};
-document.getElementById("iFsDown").onclick=()=>{S.ind.autoFs=false;S.ind.fs=Math.max(4,S.ind.fs-1);render();};
+iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();rp();};
+iHeight.oninput=()=>{const h=parseFloat(iHeight.value)||15;S.ind.widthCm=r1(h/ratioInd());iWidth.value=r1(S.ind.widthCm);render();rp();};
+document.getElementById("iFsUp").onclick=()=>{S.ind.autoFs=false;S.ind.fs+=1;render();rp();};
+document.getElementById("iFsDown").onclick=()=>{S.ind.autoFs=false;S.ind.fs=Math.max(4,S.ind.fs-1);render();rp();};
 document.getElementById("iPrint").onclick=()=>{document.body.classList.add("precise-on");renderPrecise();};
 document.getElementById("printBtn").onclick=()=>{document.body.classList.add("precise-on");renderPrecise();};
 document.getElementById("newBtn").onclick=()=>{
@@ -534,9 +534,9 @@ document.querySelectorAll(".styleTab").forEach(b=>b.onclick=()=>{
   b.classList.add("on"); S.style=b.dataset.style;
   if(S.main.a4fit){ applyA4Main(); } else { mHeight.value=r1(S.main.widthCm*ratioMain()); }
   iHeight.value=r1(S.ind.widthCm*ratioInd());
-  render();
+  render();rp();
 });
-document.getElementById("mFitA4").onclick=()=>applyA4Main();
+document.getElementById("mFitA4").onclick=()=>{applyA4Main();rp();};
 document.getElementById("previewBtn").onclick=()=>{document.body.classList.add("preview");render();};
 document.getElementById("pvClose").onclick=()=>{document.body.classList.remove("preview");render();};
 document.getElementById("pvPrint").onclick=()=>{document.body.classList.remove("preview");document.body.classList.add("precise-on");renderPrecise();};
@@ -555,6 +555,12 @@ function fitIndForPrint(per){
   if(iw) iw.value=r1(S.ind.widthCm);
   if(ih) ih.value=r1(S.ind.widthCm*ratioInd());
 }
+function setMainWidth(cm){
+  S.main.widthCm=cm; S.main.a4fit=false;
+  var mw=document.getElementById("mWidth"), mh=document.getElementById("mHeight");
+  if(mw) mw.value=r1(cm);
+  if(mh) mh.value=r1(cm*ratioMain());
+}
 // 위패 개수와 '한 줄에 N개' 설정 중 큰 값(최대 4)을 실제 한 줄 개수로 쓴다.
 function effPerRow(){ return Math.max(1, Math.min(4, Math.max(S.ind.perRow||3, S.ind.tablets.length))); }
 function setPerRow(n){
@@ -562,6 +568,8 @@ function setPerRow(n){
   S.ind.perRow=n;
   document.querySelectorAll(".perrow").forEach(x=>x.classList.toggle("on", +x.dataset.n===n));
 }
+// 정밀 미리보기가 열려 있으면 다시 그린다(크기·글꼴·도안 변경을 즉시 반영)
+function rp(){ if(document.body.classList.contains("precise-on")) renderPrecise(); }
 function renderPrecise(){ try{ renderPreciseInner(); }catch(err){
   console.error("renderPrecise", err);
   const b=document.getElementById("precBody");
@@ -575,15 +583,16 @@ function renderPreciseInner(){
     // 메인 위패는 A4 세로 기준으로 설계됨 → 방향 고정(개인에서 넘어와 landscape로 남는 문제 방지)
     S.paper.orient="portrait";
     if(!(S.main.widthCm>0)) applyA4Main();
+    // A4 인쇄영역보다 크면 자동으로 줄여 한 장에 맞춤(작게 지정한 값은 그대로 존중)
+    const uW=210-2*margin, uH=297-2*margin, fitW=Math.min(uW, uH/ratioMain());
+    if(S.main.widthCm*10 > fitW+0.5) setMainWidth(Math.floor(fitW)/10);
   } else {
+    // 개인 N개 인쇄: 항상 A4 한 장에 N개가 꽉 차도록 자동 맞춤(3개 이하=세로, 4개=가로).
+    // 위패 가로는 이 배치에 의해 결정되므로 정밀 미리보기에서는 자동값을 쓴다.
     if(!(S.ind.widthCm>0)) S.ind.widthCm=6;
-    // 개인: 위패 개수에 맞춰 한 줄 개수를 정하고, 현재 크기로 한 줄에 안 들어가면 A4 방향·크기 자동 맞춤
     const per=effPerRow();
     setPerRow(per);
-    const uW=(S.paper.orient==="portrait"?210:297)-2*margin;
-    const uH=(S.paper.orient==="portrait"?297:210)-2*margin;
-    const curCols=Math.floor((uW+gap)/(S.ind.widthCm*10+gap));
-    if(curCols<per || S.ind.widthCm*10*ratioInd()>uH) fitIndForPrint(per);
+    fitIndForPrint(per);
   }
   const port=S.paper.orient==="portrait";
   const Wmm=port?210:297, Hmm=port?297:210;
@@ -598,7 +607,8 @@ function renderPreciseInner(){
   const total=items.length;
   const pages=Math.max(1,Math.ceil(total/perPage));
   document.getElementById("precInfo").textContent=
-    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽 · ${WIPAE_BUILD}`;
+    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽`
+    +(isMain?"":` · 한 줄 ${perRow}개 자동 맞춤`)+` · ${WIPAE_BUILD}`;
   if(tabHmm>usableH||tabWmm>usableW){
     const w=document.createElement("div");w.className="pwarn";
     w.textContent=`⚠ 이 위패(${r1(tabWmm/10)}×${r1(tabHmm/10)}cm)는 A4 ${port?"세로":"가로"} 인쇄영역(${r1(usableW/10)}×${r1(usableH/10)}cm)보다 큽니다. 크기를 줄이거나 더 큰 용지를 쓰세요. (가로 전환도 시도해보세요)`;
@@ -616,8 +626,9 @@ function renderPreciseInner(){
   const pAlign=(isMain?S.main.align:S.ind.align)||"center";
   // .sheet 는 항상 실제 mm 크기로 만든다(= 인쇄 결과). 화면에서는 wrapper 안에서 축소해 보여준다.
   const PXMM=96/25.4;                                   // 1mm ≈ 3.78 CSS px
-  const availPx=Math.min(window.innerWidth-80, port?560:780);
-  const scale=availPx/(Wmm*PXMM);                       // 실제 mm → 화면 표시 배율
+  const availW=Math.max(320, Math.min(window.innerWidth-64, 1100));
+  const availH=Math.max(360, window.innerHeight-170);   // 상단 바 + 여백 고려
+  const scale=Math.min(availW/(Wmm*PXMM), availH/(Hmm*PXMM));  // 실제 mm → 화면 표시 배율(가로/세로 모두 맞춤)
   for(let p=0;p<pages;p++){
     const wrap=document.createElement("div");wrap.className="sheetWrap";
     wrap.style.width=(Wmm*PXMM*scale)+"px";wrap.style.height=(Hmm*PXMM*scale)+"px";
@@ -660,8 +671,8 @@ function applyFont(){
 }
 (function(){
   var fsel=document.getElementById("fontSel"), wsel=document.getElementById("weightSel");
-  if(fsel) fsel.onchange=function(){ S.font.fam=FONTS[fsel.value]||""; applyFont(); render(); };
-  if(wsel) wsel.onchange=function(){ S.font.weight=parseInt(wsel.value)||400; applyFont(); render(); };
+  if(fsel) fsel.onchange=function(){ S.font.fam=FONTS[fsel.value]||""; applyFont(); render(); rp(); };
+  if(wsel) wsel.onchange=function(){ S.font.weight=parseInt(wsel.value)||400; applyFont(); render(); rp(); };
   var pf=document.getElementById("precFit");
   if(pf) pf.onclick=function(){
     var port=S.paper.orient==="portrait";
