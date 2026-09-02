@@ -279,6 +279,8 @@
 </div>
 
 <script>
+const WIPAE_BUILD = "build 2026-09-02d";
+console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
 <path d="M72.0,250.8 C72.0,159.7 165.8,122.5 210.0,122.5 C254.2,122.5 348.0,159.7 348.0,250.8 L348.0,930.0 L72.0,930.0 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="6" stroke-linejoin="round"/>
@@ -544,10 +546,19 @@ function fitIndForPrint(){
 }
 function renderPrecise(){
   const body=document.getElementById("precBody"); body.innerHTML="";
-  const port=S.paper.orient==="portrait";
-  const Wmm=port?210:297, Hmm=port?297:210, margin=8, gap=6;
-  const usableW=Wmm-2*margin, usableH=Hmm-2*margin;
   const isMain=S.mode==="main";
+  const margin=8, gap=6;
+  // 개인 모드: 요청한 '한 줄에 N개'가 현재 크기로 한 페이지 한 줄에 안 들어가면 자동으로 A4 방향·크기를 맞춘다.
+  if(!isMain){
+    const uW=(S.paper.orient==="portrait"?210:297)-2*margin;
+    const fitCols=Math.max(1,Math.floor((uW+gap)/(S.ind.widthCm*10+gap)));
+    if(fitCols<S.ind.perRow || S.ind.widthCm*10*ratioInd() > (S.paper.orient==="portrait"?297:210)-2*margin){
+      fitIndForPrint();
+    }
+  }
+  const port=S.paper.orient==="portrait";
+  const Wmm=port?210:297, Hmm=port?297:210;
+  const usableW=Wmm-2*margin, usableH=Hmm-2*margin;
   const tabWmm=(isMain?S.main.widthCm:S.ind.widthCm)*10;
   const tabHmm=tabWmm*(isMain?ratioMain():ratioInd());
   let cols=isMain?1:Math.max(1,Math.min(S.ind.perRow,Math.floor((usableW+gap)/(tabWmm+gap))));
@@ -557,7 +568,7 @@ function renderPrecise(){
   const total=items.length;
   const pages=Math.max(1,Math.ceil(total/perPage));
   document.getElementById("precInfo").textContent=
-    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽`;
+    `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽 · ${WIPAE_BUILD}`;
   if(tabHmm>usableH||tabWmm>usableW){
     const w=document.createElement("div");w.className="pwarn";
     w.textContent=`⚠ 이 위패(${r1(tabWmm/10)}×${r1(tabHmm/10)}cm)는 A4 ${port?"세로":"가로"} 인쇄영역(${r1(usableW/10)}×${r1(usableH/10)}cm)보다 큽니다. 크기를 줄이거나 더 큰 용지를 쓰세요. (가로 전환도 시도해보세요)`;
