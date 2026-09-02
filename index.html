@@ -279,7 +279,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-02d";
+const WIPAE_BUILD = "build 2026-09-02e";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -424,7 +424,7 @@ function render(){
     stageInner.appendChild(f);stageInner.style.maxWidth="none";stageInner.style.width="";
     if(S.main.autoFs){ S.main.fs=fitFrame(f); }
   }else{
-    const per=S.ind.perRow;
+    const per=(typeof effPerRow==="function")?effPerRow():S.ind.perRow;
     const gap=16;
     let colW=Math.max(70, Math.round(S.ind.widthCm*32));
     stageInner.style.width=(per*colW+(per-1)*gap)+"px";
@@ -501,10 +501,10 @@ document.getElementById("cRel").oninput=e=>{S.ind.tablets[S.ind.sel].chief.rel=e
 document.getElementById("cSur").oninput=e=>{S.ind.tablets[S.ind.sel].chief.sur=e.target.value;render();};
 document.getElementById("cGiv").oninput=e=>{S.ind.tablets[S.ind.sel].chief.giv=e.target.value;render();};
 document.getElementById("addDead").onclick=()=>{S.ind.tablets[S.ind.sel].dead.push({rel:"",bongwan:"",title:"",sur:"",giv:""});deadListRender();render();};
-document.getElementById("addTablet").onclick=()=>{S.ind.tablets.push(blankTablet());S.ind.sel=S.ind.tablets.length-1;syncIndForm();render();};
-document.getElementById("dupTablet").onclick=()=>{const c=JSON.parse(JSON.stringify(S.ind.tablets[S.ind.sel]));S.ind.tablets.splice(S.ind.sel+1,0,c);S.ind.sel++;syncIndForm();render();};
+document.getElementById("addTablet").onclick=()=>{S.ind.tablets.push(blankTablet());S.ind.sel=S.ind.tablets.length-1;setPerRow(effPerRow());fitIndForPrint(effPerRow());syncIndForm();render();};
+document.getElementById("dupTablet").onclick=()=>{const c=JSON.parse(JSON.stringify(S.ind.tablets[S.ind.sel]));S.ind.tablets.splice(S.ind.sel+1,0,c);S.ind.sel++;setPerRow(effPerRow());fitIndForPrint(effPerRow());syncIndForm();render();};
 document.getElementById("delTablet").onclick=()=>{if(S.ind.tablets.length<=1){S.ind.tablets=[blankTablet()];S.ind.sel=0;}else{S.ind.tablets.splice(S.ind.sel,1);S.ind.sel=Math.max(0,S.ind.sel-1);}syncIndForm();render();};
-document.querySelectorAll(".perrow").forEach(b=>b.onclick=()=>{document.querySelectorAll(".perrow").forEach(x=>x.classList.remove("on"));b.classList.add("on");S.ind.perRow=parseInt(b.dataset.n);fitIndForPrint();render();if(document.body.classList.contains("precise-on"))renderPrecise();});
+document.querySelectorAll(".perrow").forEach(b=>b.onclick=()=>{setPerRow(parseInt(b.dataset.n));fitIndForPrint(effPerRow());render();if(document.body.classList.contains("precise-on"))renderPrecise();});
 const iWidth=document.getElementById("iWidth"),iHeight=document.getElementById("iHeight");
 iWidth.value=r1(S.ind.widthCm);iHeight.value=r1(S.ind.widthCm*ratioInd());
 iWidth.oninput=()=>{S.ind.widthCm=parseFloat(iWidth.value)||6;iHeight.value=r1(S.ind.widthCm*ratioInd());render();};
@@ -530,10 +530,11 @@ document.getElementById("mFitA4").onclick=()=>applyA4Main();
 document.getElementById("previewBtn").onclick=()=>{document.body.classList.add("preview");render();};
 document.getElementById("pvClose").onclick=()=>{document.body.classList.remove("preview");render();};
 document.getElementById("pvPrint").onclick=()=>{document.body.classList.remove("preview");document.body.classList.add("precise-on");renderPrecise();};
-// 개인 위패: '한 줄에 N개'가 A4 한 장에 딱 맞도록 용지 방향과 위패 가로를 계산.
-// 3개 이하 = A4 세로, 4개 이상 = A4 가로. 한 줄에 N개가 정확히 한 페이지에 들어간다.
-function fitIndForPrint(){
-  var per=S.ind.perRow||3, m=8, g=6;
+// 개인 위패: 한 페이지(한 줄)에 per개가 딱 들어가도록 용지 방향·위패 가로 계산.
+// per 3개 이하 = A4 세로, 4개 = A4 가로.
+function fitIndForPrint(per){
+  per=Math.max(1,Math.min(4, per||S.ind.perRow||3));
+  var m=8, g=6;
   var land=per>=4;
   S.paper.orient=land?"landscape":"portrait";
   var Wmm=land?297:210, Hmm=land?210:297;
@@ -544,24 +545,33 @@ function fitIndForPrint(){
   if(iw) iw.value=r1(S.ind.widthCm);
   if(ih) ih.value=r1(S.ind.widthCm*ratioInd());
 }
+// 위패 개수와 '한 줄에 N개' 설정 중 큰 값(최대 4)을 실제 한 줄 개수로 쓴다.
+function effPerRow(){ return Math.max(1, Math.min(4, Math.max(S.ind.perRow||3, S.ind.tablets.length))); }
+function setPerRow(n){
+  n=Math.max(1,Math.min(4,n));
+  S.ind.perRow=n;
+  document.querySelectorAll(".perrow").forEach(x=>x.classList.toggle("on", +x.dataset.n===n));
+}
 function renderPrecise(){
   const body=document.getElementById("precBody"); body.innerHTML="";
   const isMain=S.mode==="main";
   const margin=8, gap=6;
-  // 개인 모드: 요청한 '한 줄에 N개'가 현재 크기로 한 페이지 한 줄에 안 들어가면 자동으로 A4 방향·크기를 맞춘다.
+  // 개인 모드: 위패 개수에 맞춰 한 줄 개수를 정하고, 현재 크기로 한 줄에 안 들어가면 A4 방향·크기 자동 맞춤
   if(!isMain){
+    const per=effPerRow();
+    setPerRow(per);
     const uW=(S.paper.orient==="portrait"?210:297)-2*margin;
-    const fitCols=Math.max(1,Math.floor((uW+gap)/(S.ind.widthCm*10+gap)));
-    if(fitCols<S.ind.perRow || S.ind.widthCm*10*ratioInd() > (S.paper.orient==="portrait"?297:210)-2*margin){
-      fitIndForPrint();
-    }
+    const uH=(S.paper.orient==="portrait"?297:210)-2*margin;
+    const curCols=Math.floor((uW+gap)/(S.ind.widthCm*10+gap));
+    if(curCols<per || S.ind.widthCm*10*ratioInd()>uH) fitIndForPrint(per);
   }
   const port=S.paper.orient==="portrait";
   const Wmm=port?210:297, Hmm=port?297:210;
   const usableW=Wmm-2*margin, usableH=Hmm-2*margin;
+  const perRow=isMain?1:effPerRow();
   const tabWmm=(isMain?S.main.widthCm:S.ind.widthCm)*10;
   const tabHmm=tabWmm*(isMain?ratioMain():ratioInd());
-  let cols=isMain?1:Math.max(1,Math.min(S.ind.perRow,Math.floor((usableW+gap)/(tabWmm+gap))));
+  let cols=isMain?1:Math.max(1,Math.min(perRow,Math.floor((usableW+gap)/(tabWmm+gap))));
   let rows=Math.max(1,Math.floor((usableH+gap)/(tabHmm+gap)));
   const perPage=Math.max(1,cols*rows);
   const items=isMain?[null]:S.ind.tablets;
@@ -573,9 +583,9 @@ function renderPrecise(){
     const w=document.createElement("div");w.className="pwarn";
     w.textContent=`⚠ 이 위패(${r1(tabWmm/10)}×${r1(tabHmm/10)}cm)는 A4 ${port?"세로":"가로"} 인쇄영역(${r1(usableW/10)}×${r1(usableH/10)}cm)보다 큽니다. 크기를 줄이거나 더 큰 용지를 쓰세요. (가로 전환도 시도해보세요)`;
     body.appendChild(w);
-  } else if(!isMain && S.ind.perRow>cols){
+  } else if(!isMain && perRow>cols){
     const w=document.createElement("div");w.className="pwarn";
-    w.textContent=`⚠ 폭이 부족해 한 줄에 ${cols}개만 들어갑니다(요청 ${S.ind.perRow}개). 위패 가로를 줄이거나 A4 가로로 전환하세요.`;
+    w.textContent=`⚠ 폭이 부족해 한 줄에 ${cols}개만 들어갑니다(요청 ${perRow}개). 위패 가로를 줄이거나 A4 가로로 전환하세요.`;
     body.appendChild(w);
   }
   // 인쇄 전용 스타일: 화면 미리보기는 px 비율로 축소해 보여주지만,
@@ -640,7 +650,7 @@ function applyFont(){
       var mw=document.getElementById("mWidth"), mh=document.getElementById("mHeight");
       if(mw)mw.value=r1(S.main.widthCm); if(mh)mh.value=r1(S.main.widthCm*ratioMain());
     } else {
-      fitIndForPrint();   // 한 줄에 N개 → A4 방향+가로 자동 계산(3개=세로, 4개=가로)
+      fitIndForPrint(effPerRow());   // 위패 개수/설정에 맞춰 A4 방향+가로 자동 계산(≤3=세로, 4=가로)
     }
     render(); renderPrecise();
   };
