@@ -280,6 +280,7 @@
     <span id="precInfo" class="note"></span>
     <span style="flex:1"></span>
     <button class="btn" id="precFit">📐 꽉 맞춤</button>
+    <button class="btn" id="precFillV">↕ 세로 채움</button>
     <span style="font-size:13px;color:var(--sub)">정렬</span>
     <button class="btn" data-palign="start">왼쪽</button>
     <button class="btn" data-palign="center">가운데</button>
@@ -292,7 +293,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-03b";
+const WIPAE_BUILD = "build 2026-09-03c";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -624,20 +625,30 @@ function renderPreciseInner(){
   const usableW=Wmm-2*margin, usableH=Hmm-2*margin;
   const perRow=isMain?1:effPerRow();
   const tabWmm=(isMain?S.main.widthCm:S.ind.widthCm)*10;
-  const tabHmm=tabWmm*(isMain?ratioMain():ratioInd());
+  const tabHmm0=tabWmm*(isMain?ratioMain():ratioInd());
   let cols=isMain?1:Math.max(1,Math.min(perRow,Math.floor((usableW+gap)/(tabWmm+gap))));
-  let rows=Math.max(1,Math.floor((usableH+gap)/(tabHmm+gap)));
+  let rows=Math.max(1,Math.floor((usableH+gap)/(tabHmm0+gap)));
   const perPage=Math.max(1,cols*rows);
   const items=isMain?[null]:S.ind.tablets;
   const total=items.length;
   const pages=Math.max(1,Math.ceil(total/perPage));
+  // '세로 채움': 한 줄에 몇 개(폭)로 크기가 제한돼 아래 여백이 남을 때, 위패를 세로로 늘여 페이지를 채움
+  let stretchY=1;
+  if(S.fillV){
+    const usedRows=Math.min(rows, Math.ceil(total/cols));
+    const rowAvail=(usableH-(usedRows-1)*gap)/usedRows;
+    if(rowAvail>tabHmm0+0.5) stretchY=Math.min(1.9, rowAvail/tabHmm0);
+  }
+  const tabHmm=tabHmm0*stretchY;
+  const fvb=document.getElementById("precFillV"); if(fvb) fvb.classList.toggle("on", !!S.fillV);
   const maxWcm=isMain?mainMaxWidthCm():indAbsMaxWidthCm(port);
   document.getElementById("precInfo").textContent=
     `A4 ${Wmm}×${Hmm}mm(인쇄영역 ${r1(usableW/10)}×${r1(usableH/10)}cm) · 위패 ${r1(tabWmm/10)}×${r1(tabHmm/10)}cm`
     +` (최대 가로 ${r1(maxWcm)}cm) · 한 장 ${cols}×${rows}=${perPage}개 · 총 ${pages}쪽 · ${WIPAE_BUILD}`;
   if(!isMain){
-    const w=document.createElement("div");w.className="note";w.style.cssText="max-width:640px;color:var(--sub)";
-    w.textContent=`위패를 더 크게: '한 줄에' 개수를 줄이거나(${port?"":"↕ 세로로 전환 후 "}가로 값을 최대 ${r1(maxWcm)}cm까지). 작게: 가로 값을 낮추세요.`;
+    const w=document.createElement("div");w.className="note";w.style.cssText="max-width:680px;color:var(--sub)";
+    w.textContent=`위패를 더 크게: '한 줄에' 개수를 줄이거나 가로 값을 최대 ${r1(maxWcm)}cm까지. `
+      +`아래 여백을 채우려면 '↕ 세로 채움'(위패가 세로로 늘어남)${S.fillV?" — 켜짐":""}.`;
     body.appendChild(w);
   }
   if(tabHmm>usableH||tabWmm>usableW){
@@ -681,6 +692,11 @@ function renderPreciseInner(){
       const f=isMain?buildMainFrame():buildIndFrame(t,S.ind.fs);
       f.style.width=tabWmm+"mm";f.style.setProperty("--print-w",tabWmm+"mm");
       f.style.outline="none";f.style.cursor="default";f.onclick=null;
+      if(stretchY!==1){
+        f.style.aspectRatio="auto";
+        f.style.height=tabHmm+"mm";
+        const svg=f.querySelector("svg"); if(svg) svg.setAttribute("preserveAspectRatio","none");
+      }
       sheet.appendChild(f);
     });
     wrap.appendChild(sheet);
@@ -693,6 +709,7 @@ function renderPreciseInner(){
 document.getElementById("preciseBtn").onclick=()=>{document.body.classList.add("precise-on");renderPrecise();};
 document.getElementById("precClose").onclick=()=>{document.body.classList.remove("precise-on");};
 document.getElementById("precOrient").onclick=()=>{S.paper.orient=(S.paper.orient==="portrait"?"landscape":"portrait");renderPrecise();};
+document.getElementById("precFillV").onclick=function(){ S.fillV=!S.fillV; this.classList.toggle("on",S.fillV); renderPrecise(); };
 document.getElementById("precPrint").onclick=()=>window.print();
 var FONTS={"궁서":'"Gungsuh","궁서",serif',"굴림":'"Gulim","굴림",sans-serif',"돋움":'"Dotum","돋움",sans-serif',"맑은 고딕":'"Malgun Gothic","맑은 고딕",sans-serif'};
 function applyFont(){
