@@ -67,7 +67,8 @@
   .footer .btn{flex:1}
 
   /* ===== 위패(벡터 프레임 + 글자) ===== */
-  .frame{position:relative;container-type:inline-size}
+  .frame{position:relative;container-type:inline-size;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .frame.main{width:min(360px,84vw);aspect-ratio:420/1180}
   .frame.ind{width:100%;aspect-ratio:300/772}
   .frame svg{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -102,19 +103,23 @@
          font-size:14px;max-width:640px}
   @media print{
     @page{margin:8mm}
+    html,body{height:auto!important;overflow:visible!important}
     header,.panel{display:none!important}
-    body{background:#fff;display:block;height:auto;overflow:visible}
+    body{background:#fff;display:block}
     .main{display:block}
     .stage{display:block;overflow:visible;padding:0;background:#fff}
     .stageInner{display:flex;flex-wrap:wrap;gap:6mm;justify-content:flex-start;align-items:flex-start}
     .frame{break-inside:avoid}
     .frame.main{width:var(--print-w)!important}
     .frame.ind{width:var(--print-w)!important}
+    body.precise-on{overflow:visible!important;height:auto!important;display:block!important}
     body.precise-on header,body.precise-on .panel,body.precise-on .pvbar,body.precise-on .main{display:none!important}
-    body.precise-on .precise{position:static!important;display:block!important;background:#fff}
+    body.precise-on .precise{position:static!important;display:block!important;background:#fff;
+                             overflow:visible!important;height:auto!important;inset:auto!important}
     body.precise-on .precise .pbar{display:none!important}
-    body.precise-on .precise .pbody{display:block!important;padding:0!important}
-    body.precise-on .sheet{box-shadow:none!important;margin:0 auto 6mm!important;break-inside:avoid}
+    body.precise-on .precise .pbody{display:block!important;padding:0!important;
+                                    overflow:visible!important;height:auto!important}
+    body.precise-on .sheet{box-shadow:none!important;margin:0 auto!important;break-inside:avoid}
     body.precise-on .sheetcap,body.precise-on .pwarn{display:none!important}
   }
 </style>
@@ -279,7 +284,7 @@
 </div>
 
 <script>
-const WIPAE_BUILD = "build 2026-09-02e";
+const WIPAE_BUILD = "build 2026-09-02f";
 console.info("[WIPAE] " + WIPAE_BUILD);
 const MAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1180">
 <path d="M210.0,112.3 C187.9,90.8 187.9,50.9 210.0,40.9 C232.1,50.9 232.1,90.8 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,99.4 L210.0,53.7" stroke="#2b1d12" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M210.0,112.3 C190.2,107.2 174.2,83.5 181.5,70.0 C196.7,68.3 212.7,92.0 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M210.0,112.3 C207.3,92.0 223.3,68.3 238.5,70.0 C245.8,83.5 229.8,107.2 210.0,112.3 Z" fill="#f7f1e3" stroke="#2b1d12" stroke-width="3.0" stroke-linejoin="round"/><path d="M184.5,112.3 Q210.0,125.9 235.5,112.3" fill="none" stroke="#2b1d12" stroke-width="4.42" stroke-linecap="round"/>
@@ -552,7 +557,12 @@ function setPerRow(n){
   S.ind.perRow=n;
   document.querySelectorAll(".perrow").forEach(x=>x.classList.toggle("on", +x.dataset.n===n));
 }
-function renderPrecise(){
+function renderPrecise(){ try{ renderPreciseInner(); }catch(err){
+  console.error("renderPrecise", err);
+  const b=document.getElementById("precBody");
+  if(b) b.innerHTML='<div class="pwarn">미리보기 표시 중 오류가 발생했습니다. 새로 만들기로 초기화하거나 새로고침해 주세요.<br>'+String(err&&err.message||err)+'</div>';
+}}
+function renderPreciseInner(){
   const body=document.getElementById("precBody"); body.innerHTML="";
   const isMain=S.mode==="main";
   const margin=8, gap=6;
@@ -596,13 +606,12 @@ function renderPrecise(){
   pageStyle.textContent=
     "@page{size:A4 "+(port?"portrait":"landscape")+";margin:"+margin+"mm}"+
     "@media print{"+
-      "body.precise-on .precise .pbody{gap:0!important;padding:0!important}"+
-      "body.precise-on .sheet{width:"+usableW+"mm!important;height:"+usableH+"mm!important;padding:0!important;"+
-        "grid-template-columns:repeat("+cols+","+tabWmm+"mm)!important;grid-auto-rows:"+tabHmm+"mm!important;"+
+      "body.precise-on .precise .pbody{gap:0!important}"+
+      "body.precise-on .sheet{width:"+usableW+"mm!important;min-height:"+usableH+"mm!important;height:auto!important;padding:0!important;"+
+        "grid-template-columns:repeat("+cols+","+tabWmm+"mm)!important;grid-auto-rows:auto!important;"+
         "gap:"+gap+"mm!important;justify-content:"+pJustify+"!important;align-content:start!important;"+
-        "box-shadow:none!important;margin:0!important;overflow:hidden;break-after:page;page-break-after:always}"+
-      "body.precise-on .sheet:last-of-type{break-after:auto;page-break-after:auto}"+
-      "body.precise-on .frame.ind,body.precise-on .frame.main{width:"+tabWmm+"mm!important;max-width:none!important}"+
+        "box-shadow:none!important;margin:0 auto!important;overflow:visible!important}"+
+      "body.precise-on .frame.ind,body.precise-on .frame.main{width:"+tabWmm+"mm!important;max-width:none!important;height:auto!important}"+
     "}";
   const avail=Math.min(window.innerWidth-80, port?560:760);
   const scale=avail/Wmm;
@@ -620,6 +629,8 @@ function renderPrecise(){
       f.style.width=(tabWmm*scale)+"px";f.style.outline="none";f.style.cursor="default";f.onclick=null;
       sheet.appendChild(f);
     });
+    sheet.style.pageBreakAfter=(p<pages-1)?"always":"auto";
+    sheet.style.breakAfter=(p<pages-1)?"page":"auto";
     body.appendChild(sheet);
     const cap=document.createElement("div");cap.className="sheetcap";
     cap.textContent=`A4 ${port?"세로":"가로"} · ${Wmm}×${Hmm}mm  (${p+1}/${pages}쪽)`;
@@ -734,8 +745,6 @@ if("serviceWorker" in navigator){
   var _wipaeReloaded=false;
   navigator.serviceWorker.addEventListener("controllerchange",function(){
     if(_wipaeReloaded) return; _wipaeReloaded=true;
-    // 새 버전이 적용되기 직전, 작성 중인 내용을 임시 저장했다가 새로고침 후 복원한다.
-    try{ if(window.__wipaeStashState) window.__wipaeStashState(); }catch(e){}
     location.reload();
   });
 }
